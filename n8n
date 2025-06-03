@@ -1,0 +1,31 @@
+const allCandidates = items.map((item, index) => ({
+  rank: index + 1,
+  name: item.json.full_name || 'Unknown',
+  current_title: item.json.job_title_current || 'Not specified',
+  linkedin_url: item.json.linkedin_url || '#',
+  ai_score: item.json.match_score || 0,
+  reasoning: item.json.match_reasoning || 'No analysis',
+  strengths: item.json.candidate_strengths || 'None listed',
+  search_position: item.json.search_rank || 'Unknown'
+}));
+
+// Get top 3
+const top3Candidates = allCandidates.slice(0, 3);
+
+// Get job info from first item
+const jobInfo = {
+  job_title: items[0]?.json.required_job || 'Not specified',
+  job_location: items[0]?.json.required_location || 'Not specified',
+  total_found: allCandidates.length,
+  search_date: new Date().toISOString().split('T')[0]
+};
+
+return [
+  {
+    json: {
+      job_info: jobInfo,
+      all_candidates: allCandidates,
+      top_3_candidates: top3Candidates
+    }
+  }
+];
