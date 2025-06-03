@@ -1,0 +1,77 @@
+console.log('Input items:', items); // Debug log
+
+// Ensure we have items to process
+if (!items || items.length === 0) {
+  console.log('No items received');
+  return [{
+    json: {
+      error: 'No candidate data received',
+      job_info: {
+        job_title: 'Unknown',
+        job_location: 'Unknown',
+        total_found: 0,
+        search_date: new Date().toISOString().split('T')[0]
+      },
+      all_candidates: [],
+      top_3_candidates: []
+    }
+  }];
+}
+
+// Process all candidates with safe property access
+const allCandidates = items.map((item, index) => {
+  // Handle both item.json and direct item structures
+  const data = item.json || item;
+  
+  return {
+    rank: index + 1,
+    name: data.full_name || data.name || 'Unknown',
+    current_title: data.job_title_current || data.current_title || 'Not specified',
+    linkedin_url: data.linkedin_url || data.link || '#',
+    ai_score: parseFloat(data.match_score) || parseFloat(data.ai_score) || 0,
+    reasoning: data.match_reasoning || data.reasoning || 'No analysis available',
+    strengths: data.candidate_strengths || data.strengths || 'None listed',
+    search_position: data.search_rank || data.position || index + 1,
+    profile_summary: data.profile_summary || data.snippet || 'No summary'
+  };
+});
+
+// Sort by AI score (highest first) in case Sort node didn't work properly
+allCandidates.sort((a, b) => b.ai_score - a.ai_score);
+
+// Update ranks after sorting
+allCandidates.forEach((candidate, index) => {
+  candidate.rank = index + 1;
+});
+
+// Get top 3 candidates
+const top3Candidates = allCandidates.slice(0, 3);
+
+// Extract job info from first item with fallbacks
+const firstItem = items[0];
+const firstData = firstItem?.json || firstItem || {};
+
+const jobInfo = {
+  job_title: firstData.required_job || firstData.job_title || 'Not specified',
+  job_location: firstData.required_location || firstData.job_location || 'Not specified',
+  total_found: allCandidates.length,
+  search_date: new Date().toISOString().split('T')[0],
+  average_score: allCandidates.length > 0 ? 
+    (allCandidates.reduce((sum, c) => sum + c.ai_score, 0) / allCandidates.length).toFixed(1) : 0
+};
+
+// Return structured result
+return [{
+  json: {
+    status: 'success',
+    job_info: jobInfo,
+    all_candidates: allCandidates,
+    top_3_candidates: top3Candidates,
+    summary: {
+      total_candidates: allCandidates.length,
+      candidates_with_score_above_7: allCandidates.filter(c => c.ai_score >= 7).length,
+      highest_score: allCandidates.length > 0 ? Math.max(...allCandidates.map(c => c.ai_score)) : 0,
+      lowest_score: allCandidates.length > 0 ? Math.min(...allCandidates.map(c => c.ai_score)) : 0
+    }
+  }
+}];
